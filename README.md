@@ -12,69 +12,8 @@ Send Github Actions workflow status notifications to Slack regarding failures, w
 - [x] Mention Users and control when to mention them
 - [x] Mention Users Groups and control when to mention them
 
-## Inputs
-
-```yml
-status:
-  description: Job Status
-  required: true
-
-notification_title:
-  description: Specify on the notification message title
-  required: false
-  default: 'New Github Action Run'
-
-message_format:
-  description: Specify on the notification message format
-  required: false
-  default: '{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}@{branch}> on <{commit_url}|{commit_sha}>'
-
-footer:
-  description: Specify the footer of the message
-  required: false
-  default: 'Developed by <https://www.ravsam.in|RavSam>'
-
-notify_when:
-  description: Specify on which events a slack notification is sent
-  required: false
-  default: 'success,failure,warnings'
-
-mention_users:
-  description: Specify the slack IDs of users you want to mention.
-  required: false
-  default: ''
-
-mention_users_when:
-  description: Specify on which events you want to mention the users
-  required: false
-  default: 'success,failure,warnings'
-
-mention_groups:
-  description: Specify the slack IDs of groups you want to mention
-  required: false
-  default: ''
-  
-mention_groups_when:
-  description: Specify on which events you want to mention the groups
-  required: false
-  default: 'success,failure,warnings'
-```
-
 ## Example workflows
-
-The following variables are available for formatting your own strings.
-
-- {branch}
-- {commit_url}
-- {commit_sha}
-- {emoji}
-- {repo}
-- {repo_url}
-- {status_message}
-- {workflow}
-
-You can use these to construct custom `notification_title`, `message_format` and `footer`. To get an idea see the workflow below.
-
+ 
 ### Minimal workflow
 
 ![](screenshots/minimal.png)
@@ -99,9 +38,10 @@ steps:
     if: always()
     with:
       status: ${{ job.status }}
+      token: ${{ secrets.GITHUB_TOKEN }}
       notification_title: '{workflow} has {status_message}'
       message_format: '{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}>'
-      footer: 'Linked Repo <{repo_url}|{repo}>'
+      footer: 'Linked Repo <{repo_url}|{repo}> | <{workflow_url}|View Workflow>'
       notify_when: 'failure'
     env:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -149,6 +89,76 @@ steps:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
 
+The following variables are available for formatting your own strings.
+
+- {branch}
+- {commit_url}
+- {commit_sha}
+- {emoji}
+- {repo}
+- {repo_url}
+- {status_message}
+- {run_url}
+- {workflow}
+- {workflow_url}
+
+You can use these to construct custom `notification_title`, `message_format` and `footer`.
+
+> In order to use `{workflow_url}`, specify as the token input as `token: ${{ secrets.GITHUB_TOKEN }}`.
+
+## Inputs
+
+```yml
+status:
+  description: Job Status
+  required: true
+
+token:
+  description: Github Token for accessing workflow url
+  required: false
+  default: ''
+
+notification_title:
+  description: Specify on the notification message title
+  required: false
+  default: 'New Github Action Run'
+
+message_format:
+  description: Specify on the notification message format
+  required: false
+  default: '{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}@{branch}> on <{commit_url}|{commit_sha}>'
+
+footer:
+  description: Specify the footer of the message
+  required: false
+  default: "<{run_url}|View Run> | Developed by <https://www.ravsam.in|RavSam>"
+
+notify_when:
+  description: Specify on which events a slack notification is sent
+  required: false
+  default: 'success,failure,warnings'
+
+mention_users:
+  description: Specify the slack IDs of users you want to mention.
+  required: false
+  default: ''
+
+mention_users_when:
+  description: Specify on which events you want to mention the users
+  required: false
+  default: 'success,failure,warnings'
+
+mention_groups:
+  description: Specify the slack IDs of groups you want to mention
+  required: false
+  default: ''
+  
+mention_groups_when:
+  description: Specify on which events you want to mention the groups
+  required: false
+  default: 'success,failure,warnings'
+```
+
 ## Tech Stack
 
 - [Python](https://python.org/) - Programming
@@ -172,7 +182,7 @@ python3 -m venv venv
 source venv/bin/activate
 
 # install pip dependencies
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
 ## Versioning

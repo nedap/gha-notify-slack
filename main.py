@@ -48,6 +48,29 @@ def action_emoji(status):
         return ':large_orange_diamond:'
 
 
+def get_workflow_url(inputs):
+    """
+    Get Workflow URL responsible for the Action run.
+    """
+
+    repo = os.getenv('GITHUB_REPOSITORY')
+    token = inputs['token']
+
+    url = f'https://api.github.com/repos/{repo}/actions/workflows'
+    headers = {
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': f'token {token}',
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        workflows = response.json()['workflows']
+        for workflow in workflows:
+            if workflow['name'] == os.getenv('GITHUB_WORKFLOW'):
+                return workflow['html_url']
+
+    return ''
+
+
 def construct_payload(inputs):
     """
     Creates a message payload which can be sent to Slack.
@@ -58,6 +81,7 @@ def construct_payload(inputs):
     repo = os.getenv('GITHUB_REPOSITORY')
     branch = os.getenv('GITHUB_REF')
     commit_sha = os.getenv('GITHUB_SHA')[:7]
+    run_id = os.getenv('GITHUB_RUN_ID')
 
     # derived from action inputs
     job_status = inputs['job_status']
@@ -71,7 +95,9 @@ def construct_payload(inputs):
 
     # self constructed
     commit_url = f'https://github.com/{repo}/commit/{commit_sha}'
-    repo_url = f'https://github.com/{repo}/tree/{branch}'
+    repo_url = f'https://github.com/{repo}'
+    run_url = f'https://github.com/{repo}/actions/runs/{run_id}'
+    workflow_url = get_workflow_url(inputs)
     color = action_color(job_status)
     status_message = action_status(job_status)
     emoji = action_emoji(job_status)
@@ -85,6 +111,8 @@ def construct_payload(inputs):
     title = title.replace('{branch}', branch)
     title = title.replace('{commit_url}', commit_url)
     title = title.replace('{commit_sha}', commit_sha)
+    title = title.replace('{run_url}', run_url)
+    title = title.replace('{workflow_url}', workflow_url)
 
     # construct the message
     message = message.replace('{emoji}', emoji)
@@ -95,6 +123,8 @@ def construct_payload(inputs):
     message = message.replace('{branch}', branch)
     message = message.replace('{commit_url}', commit_url)
     message = message.replace('{commit_sha}', commit_sha)
+    message = message.replace('{run_url}', run_url)
+    message = message.replace('{workflow_url}', workflow_url)
 
     # added user mentions to the message
     if job_status in mention_users_when and mention_users.strip() != '':
@@ -117,6 +147,8 @@ def construct_payload(inputs):
     footer = footer.replace('{branch}', branch)
     footer = footer.replace('{commit_url}', commit_url)
     footer = footer.replace('{commit_sha}', commit_sha)
+    footer = footer.replace('{run_url}', run_url)
+    footer = footer.replace('{workflow_url}', workflow_url)
 
     payload = {
         'attachments': [
@@ -152,6 +184,7 @@ def main(testing=False):
 
     inputs = {
         'job_status': os.getenv('INPUT_STATUS'),
+        'token': os.getenv('INPUT_TOKEN'),
         'notification_title': os.getenv('INPUT_NOTIFICATION_TITLE'),
         'message_format': os.getenv('INPUT_MESSAGE_FORMAT'),
         'footer': os.getenv('INPUT_FOOTER'),
